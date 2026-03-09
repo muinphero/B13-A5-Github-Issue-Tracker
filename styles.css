@@ -1,4 +1,11 @@
 body {
   font-family: "Geist", sans-serif;
   font-optical-sizing: auto;
+  overflow-y: scroll;
+}
+
+.tab-btn.active-tab {
+  background: #3b1df5;
+  color: white;
+  border-color: #3b1df5;
 }
