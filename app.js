@@ -145,15 +145,36 @@ function getPriorityClass(priority) {
 }
 
 function getLabelClass(labelText) {
-  const lower = labelText.toLowerCase();
+  const lower = String(labelText || "")
+    .trim()
+    .toLowerCase();
 
-  if (lower === "bug") return "border-red-300 bg-red-100 text-red-500";
-  if (lower === "help wanted")
-    return "border-amber-400 bg-amber-100 text-amber-600";
-  if (lower === "enhancement")
-    return "border-emerald-300 bg-emerald-100 text-emerald-600";
+  const labelClassMap = {
+    bug: "border-red-300 bg-red-100 text-red-500",
+    "help wanted": "border-amber-400 bg-amber-100 text-amber-600",
+    enhancement: "border-emerald-300 bg-emerald-100 text-emerald-600",
+    documentation: "border-sky-300 bg-sky-100 text-sky-700",
+    "good first issue": "border-indigo-300 bg-indigo-100 text-indigo-700",
+  };
 
-  return "border-slate-300 bg-slate-100 text-slate-600";
+  if (labelClassMap[lower]) {
+    return labelClassMap[lower];
+  }
+
+  // Fallback palette for any unknown/new labels from API.
+  const fallbackPalette = [
+    "border-fuchsia-300 bg-fuchsia-100 text-fuchsia-700",
+    "border-cyan-300 bg-cyan-100 text-cyan-700",
+    "border-lime-300 bg-lime-100 text-lime-700",
+    "border-orange-300 bg-orange-100 text-orange-700",
+  ];
+
+  let sum = 0;
+  for (let i = 0; i < lower.length; i++) {
+    sum += lower.charCodeAt(i);
+  }
+
+  return fallbackPalette[sum % fallbackPalette.length];
 }
 
 function buildLabelsHtml(labels) {
