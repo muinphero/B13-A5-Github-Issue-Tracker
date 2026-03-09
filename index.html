@@ -217,16 +217,18 @@
 
       <!-- Issue Details Modal -->
       <dialog id="issueModal" class="modal">
-        <div class="modal-box max-w-2xl">
-          <h3 id="modalTitle" class="text-xl font-bold text-slate-800 mb-2">
+        <div class="modal-box max-w-[620px] rounded-xl bg-white p-6">
+          <h3 id="modalTitle" class="text-[32px] font-bold leading-tight text-slate-800 mb-2">
             Issue Details
           </h3>
-          <div id="modalContent" class="text-sm text-slate-700 space-y-2">
-            Loading issue details...
+          <div id="modalContent" class="text-sm text-slate-700">
+            <p class="text-slate-500">Loading issue details...</p>
           </div>
-          <div class="modal-action">
+          <div class="modal-action mt-5">
             <form method="dialog">
-              <button class="btn">Close</button>
+              <button class="h-10 px-5 rounded-md bg-[#3b1df5] text-white text-[14px] font-semibold hover:bg-[#2f14db]">
+                Close
+              </button>
             </form>
           </div>
         </div>
@@ -236,3 +238,6 @@
     <script src="app.js"></script>
   </body>
 </html>
+
+
+

@@ -128,16 +128,14 @@ function renderIssueCards(issues) {
     const status = issue.status || "N/A";
     const author = issue.author || "Unknown";
     const priority = issue.priority || "N/A";
-    const label =
-      Array.isArray(issue.labels) && issue.labels.length
-        ? issue.labels.join(", ")
-        : "N/A";
     const createdAt = formatCreatedDate(issue.createdAt);
-
-    const card = document.createElement("div");
 
     const isOpen = status.toLowerCase() === "open";
     const isClosed = status.toLowerCase() === "closed";
+
+    const statusIcon = isClosed
+      ? "./assets/Closed- Status .png"
+      : "./assets/Open-Status.png";
 
     let topBorderClass = "border-t-4 border-t-slate-300";
     if (isOpen) {
@@ -146,17 +144,55 @@ function renderIssueCards(issues) {
       topBorderClass = "border-t-4 border-t-violet-500";
     }
 
-    card.className = `bg-white border border-slate-200 rounded-md p-4 shadow-sm cursor-pointer ${topBorderClass}`;
+    let priorityClass = "bg-slate-200 text-slate-500";
+    if (priority.toLowerCase() === "high") {
+      priorityClass = "bg-red-100 text-red-500";
+    } else if (priority.toLowerCase() === "medium") {
+      priorityClass = "bg-amber-100 text-amber-600";
+    } else if (priority.toLowerCase() === "low") {
+      priorityClass = "bg-slate-200 text-slate-500";
+    }
+
+    const labels = Array.isArray(issue.labels) ? issue.labels : [];
+    const labelsHtml =
+      labels.length > 0
+        ? labels
+            .map((labelText) => {
+              const lower = labelText.toLowerCase();
+              let cls = "border-slate-300 bg-slate-100 text-slate-600";
+
+              if (lower === "bug") {
+                cls = "border-red-300 bg-red-100 text-red-500";
+              } else if (lower === "help wanted") {
+                cls = "border-amber-400 bg-amber-100 text-amber-600";
+              } else if (lower === "enhancement") {
+                cls = "border-emerald-300 bg-emerald-100 text-emerald-600";
+              }
+
+              return `<span class="inline-flex items-center rounded-full border px-2 py-[2px] text-[11px] font-medium uppercase leading-none ${cls}">${labelText}</span>`;
+            })
+            .join(" ")
+        : '<span class="inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-2 py-[2px] text-[11px] font-medium uppercase leading-none text-slate-600">No Label</span>';
+
+    const card = document.createElement("div");
+    card.className = `cursor-pointer overflow-hidden rounded-md border border-slate-200 bg-[#f5f6f8] shadow-sm ${topBorderClass} h-full flex flex-col`;
 
     card.innerHTML = `
-      <h3 class="text-[16px] font-semibold text-slate-800 mb-2">${title}</h3>
-      <p class="text-[13px] text-slate-600 mb-3 line-clamp-3">${description}</p>
-      <div class="space-y-1 text-[13px] text-slate-700">
-        <p><span class="font-medium">Status:</span> ${status}</p>
-        <p><span class="font-medium">Author:</span> ${author}</p>
-        <p><span class="font-medium">Priority:</span> ${priority}</p>
-        <p><span class="font-medium">Label:</span> ${label}</p>
-        <p><span class="font-medium">Created:</span> ${createdAt}</p>
+      <div class="px-4 pt-3 pb-4 flex-1 flex flex-col">
+        <div class="mb-3 flex items-center justify-between">
+          <img src="${statusIcon}" alt="${status}" class="h-5 w-5" />
+          <span class="inline-flex min-w-[88px] items-center justify-center rounded-full px-3 py-[3px] text-[12px] font-semibold uppercase leading-none ${priorityClass}">${priority}</span>
+        </div>
+
+        <h3 class="mb-2 line-clamp-2 text-[16px] font-semibold leading-tight text-slate-800">${title}</h3>
+        <p class="mb-3 line-clamp-2 text-[15px] leading-[1.35] text-slate-500">${description}</p>
+
+        <div class="mt-auto flex flex-wrap gap-2 min-h-[22px]">${labelsHtml}</div>
+      </div>
+
+      <div class="border-t border-slate-300 px-4 py-3 text-[13px] text-slate-500">
+        <p>#${issue.id ?? "N/A"} by ${author}</p>
+        <p class="mt-1">${createdAt}</p>
       </div>
     `;
 
@@ -167,7 +203,6 @@ function renderIssueCards(issues) {
     issuesContainer.appendChild(card);
   });
 }
-
 // Get issues based on current tab
 function getFilteredIssues() {
   if (currentFilter === "open") {
@@ -219,7 +254,7 @@ async function loadAllIssues() {
 async function openIssueModal(issueId) {
   try {
     modalTitle.textContent = "Issue Details";
-    modalContent.innerHTML = "<p>Loading issue details...</p>";
+    modalContent.innerHTML = "<p class=\"text-slate-500\">Loading issue details...</p>";
     issueModal.showModal();
 
     const response = await fetch(`${SINGLE_ISSUE_API_BASE}/${issueId}`);
@@ -230,29 +265,85 @@ async function openIssueModal(issueId) {
     const result = await response.json();
     const issue = result.data || result.issue || result;
 
-    const labels =
-      Array.isArray(issue.labels) && issue.labels.length
-        ? issue.labels.join(", ")
-        : "N/A";
+    const issueTitle = issue.title || "Issue Details";
+    const issueStatus = (issue.status || "open").toLowerCase();
+    const issueAuthor = issue.author || "Unknown";
+    const issueDescription = issue.description || "No description available.";
+    const issueAssignee = issue.assignee || "N/A";
+    const issuePriority = (issue.priority || "N/A").toUpperCase();
 
-    modalTitle.textContent = issue.title || "Issue Details";
+    const createdDateObject = new Date(issue.createdAt);
+    const openedDate = Number.isNaN(createdDateObject.getTime())
+      ? "N/A"
+      : createdDateObject.toLocaleDateString("en-GB");
+
+    const statusClass =
+      issueStatus === "closed"
+        ? "bg-violet-100 text-violet-600"
+        : "bg-emerald-500 text-white";
+
+    let priorityClass = "bg-slate-200 text-slate-600";
+    if (issuePriority === "HIGH") {
+      priorityClass = "bg-red-500 text-white";
+    } else if (issuePriority === "MEDIUM") {
+      priorityClass = "bg-amber-400 text-slate-900";
+    } else if (issuePriority === "LOW") {
+      priorityClass = "bg-slate-300 text-slate-700";
+    }
+
+    const labels = Array.isArray(issue.labels) ? issue.labels : [];
+    const labelsHtml =
+      labels.length > 0
+        ? labels
+            .map((labelText) => {
+              const lower = labelText.toLowerCase();
+              let cls = "border-slate-300 bg-slate-100 text-slate-600";
+
+              if (lower === "bug") {
+                cls = "border-red-300 bg-red-100 text-red-500";
+              } else if (lower === "help wanted") {
+                cls = "border-amber-400 bg-amber-100 text-amber-600";
+              } else if (lower === "enhancement") {
+                cls = "border-emerald-300 bg-emerald-100 text-emerald-600";
+              }
+
+              return `<span class="inline-flex items-center rounded-full border px-2 py-[2px] text-[11px] font-medium uppercase leading-none ${cls}">${labelText}</span>`;
+            })
+            .join(" ")
+        : '<span class="inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-2 py-[2px] text-[11px] font-medium uppercase leading-none text-slate-600">No Label</span>';
+
+    modalTitle.textContent = issueTitle;
     modalContent.innerHTML = `
-      <p><span class="font-semibold">ID:</span> ${issue.id ?? "N/A"}</p>
-      <p><span class="font-semibold">Description:</span> ${issue.description || "N/A"}</p>
-      <p><span class="font-semibold">Status:</span> ${issue.status || "N/A"}</p>
-      <p><span class="font-semibold">Author:</span> ${issue.author || "Unknown"}</p>
-      <p><span class="font-semibold">Assignee:</span> ${issue.assignee || "N/A"}</p>
-      <p><span class="font-semibold">Priority:</span> ${issue.priority || "N/A"}</p>
-      <p><span class="font-semibold">Labels:</span> ${labels}</p>
-      <p><span class="font-semibold">Created:</span> ${formatCreatedDate(issue.createdAt)}</p>
-      <p><span class="font-semibold">Updated:</span> ${formatCreatedDate(issue.updatedAt)}</p>
+      <div class="space-y-4">
+        <div class="flex flex-wrap items-center gap-2 text-[14px] text-slate-500">
+          <span class="inline-flex items-center rounded-full px-3 py-1 text-[12px] font-semibold leading-none ${statusClass}">${issueStatus.charAt(0).toUpperCase() + issueStatus.slice(1)}</span>
+          <span>•</span>
+          <span>Opened by ${issueAuthor}</span>
+          <span>•</span>
+          <span>${openedDate}</span>
+        </div>
+
+        <div class="flex flex-wrap gap-2">${labelsHtml}</div>
+
+        <p class="text-[16px] leading-[1.55] text-slate-600">${issueDescription}</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-lg bg-slate-100 p-3">
+          <div>
+            <p class="text-[14px] text-slate-500 mb-1">Assignee:</p>
+            <p class="text-[20px] font-semibold text-slate-800">${issueAssignee}</p>
+          </div>
+          <div>
+            <p class="text-[14px] text-slate-500 mb-1">Priority:</p>
+            <span class="inline-flex items-center rounded-full px-3 py-[4px] text-[12px] font-semibold leading-none ${priorityClass}">${issuePriority}</span>
+          </div>
+        </div>
+      </div>
     `;
   } catch (error) {
     modalContent.innerHTML =
       "<p class='text-red-500'>Could not load issue details.</p>";
   }
 }
-
 // Fetch search results from API
 async function searchIssues(searchText) {
   try {
@@ -350,3 +441,8 @@ if (savedLoginState === "true") {
 } else {
   showLoginSection();
 }
+
+
+
+
+
