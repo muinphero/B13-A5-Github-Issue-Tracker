@@ -13,7 +13,7 @@ The spread operator `...` expands values from arrays/objects.
 - For arrays: copy or merge arrays.
 - For objects: copy or merge object properties.
 
-### 33. Difference between map(), filter(), and forEach()
+### 3. Difference between map(), filter(), and forEach()
 
 - `map()` creates a new array by transforming each item.
 - `filter()` creates a new array with only matching items.

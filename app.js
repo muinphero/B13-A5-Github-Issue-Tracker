@@ -1,6 +1,19 @@
-﻿// Login Logic + Section Toggle Logic
+﻿// Keep page at top on reload/navigation
+if ("scrollRestoration" in history) {
+  history.scrollRestoration = "manual";
+}
 
-// localStorage.removeItem("isLoggedIn");
+function forceScrollTop() {
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+}
+
+window.addEventListener("DOMContentLoaded", forceScrollTop);
+window.addEventListener("load", function () {
+  forceScrollTop();
+  setTimeout(forceScrollTop, 50);
+});
 
 // Login elements
 const loginForm = document.getElementById("loginForm");
@@ -59,13 +72,13 @@ function showLoginSection() {
 function showMainSection() {
   loginSection.classList.add("hidden");
   mainSection.classList.remove("hidden");
+  forceScrollTop();
 }
 
 // Show spinner
 function showLoading() {
   loadingSpinner.classList.remove("hidden");
 }
-
 // Hide spinner
 function hideLoading() {
   loadingSpinner.classList.add("hidden");
@@ -220,6 +233,7 @@ function renderIssuesByCurrentFilter() {
   updateSummaryCounts(filteredIssues);
   renderIssueCards(filteredIssues);
   setActiveTab(currentFilter);
+  forceScrollTop();
 }
 
 // Fetch all issues from API
@@ -249,12 +263,12 @@ async function loadAllIssues() {
     hideLoading();
   }
 }
-
 // Fetch single issue details from API
 async function openIssueModal(issueId) {
   try {
     modalTitle.textContent = "Issue Details";
-    modalContent.innerHTML = "<p class=\"text-slate-500\">Loading issue details...</p>";
+    modalContent.innerHTML =
+      '<p class="text-slate-500">Loading issue details...</p>';
     issueModal.showModal();
 
     const response = await fetch(`${SINGLE_ISSUE_API_BASE}/${issueId}`);
@@ -438,11 +452,7 @@ const savedLoginState = localStorage.getItem("isLoggedIn");
 if (savedLoginState === "true") {
   showMainSection();
   loadAllIssues();
+  setTimeout(forceScrollTop, 50);
 } else {
   showLoginSection();
 }
-
-
-
-
-
