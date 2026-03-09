@@ -51,56 +51,56 @@ const searchInput = document.getElementById("searchInput");
 const DEMO_USERNAME = "admin";
 const DEMO_PASSWORD = "admin123";
 
-// API Endpoint
+// API endpoints
 const ALL_ISSUES_API = "https://phi-lab-server.vercel.app/api/v1/lab/issues";
 const SINGLE_ISSUE_API_BASE =
   "https://phi-lab-server.vercel.app/api/v1/lab/issue";
 const SEARCH_ISSUES_API =
   "https://phi-lab-server.vercel.app/api/v1/lab/issues/search";
 
+// App state
 let allIssues = [];
 let masterIssues = [];
 let currentFilter = "all";
+let isLoading = false;
 
-// Show login section
 function showLoginSection() {
   loginSection.classList.remove("hidden");
   mainSection.classList.add("hidden");
 }
 
-// Show main section
 function showMainSection() {
   loginSection.classList.add("hidden");
   mainSection.classList.remove("hidden");
   forceScrollTop();
 }
 
-// Show spinner
 function showLoading() {
+  isLoading = true;
   loadingSpinner.classList.remove("hidden");
 }
-// Hide spinner
+
 function hideLoading() {
+  isLoading = false;
   loadingSpinner.classList.add("hidden");
 }
 
-// Format date
 function formatCreatedDate(rawDate) {
   if (!rawDate) return "N/A";
+
   const dateObject = new Date(rawDate);
   if (Number.isNaN(dateObject.getTime())) return "N/A";
+
   return dateObject.toLocaleDateString();
 }
 
-// API response helper
 function getIssuesArray(apiResponse) {
   if (Array.isArray(apiResponse)) return apiResponse;
-  if (Array.isArray(apiResponse.issues)) return apiResponse.issues;
   if (Array.isArray(apiResponse.data)) return apiResponse.data;
+  if (Array.isArray(apiResponse.issues)) return apiResponse.issues;
   return [];
 }
 
-//Set active tab style
 function setActiveTab(tabName) {
   tabAll.classList.remove("active-tab");
   tabOpen.classList.remove("active-tab");
@@ -111,7 +111,12 @@ function setActiveTab(tabName) {
   if (tabName === "closed") tabClosed.classList.add("active-tab");
 }
 
-// Update summary counts
+function resetCounts() {
+  issueCount.textContent = "0";
+  openCount.textContent = "0 Open";
+  closedCount.textContent = "0 Closed";
+}
+
 function updateSummaryCounts(issues) {
   const total = issues.length;
   const totalOpen = issues.filter((issue) => issue.status === "open").length;
@@ -119,73 +124,82 @@ function updateSummaryCounts(issues) {
     (issue) => issue.status === "closed",
   ).length;
 
-  issueCount.textContent = total;
-  openCount.textContent = totalOpen + " Open";
-  closedCount.textContent = totalClosed + " Closed";
+  issueCount.textContent = String(total);
+  openCount.textContent = `${totalOpen} Open`;
+  closedCount.textContent = `${totalClosed} Closed`;
 }
 
-// Render issue cards
+function renderIssueError(message) {
+  issuesContainer.innerHTML = `
+    <p class="text-red-500 text-center col-span-full">${message}</p>
+  `;
+  emptyMessage.classList.add("hidden");
+  resetCounts();
+}
+
+function getPriorityClass(priority) {
+  const safePriority = (priority || "").toLowerCase();
+  if (safePriority === "high") return "bg-red-100 text-red-500";
+  if (safePriority === "medium") return "bg-amber-100 text-amber-600";
+  return "bg-slate-200 text-slate-500";
+}
+
+function getLabelClass(labelText) {
+  const lower = labelText.toLowerCase();
+
+  if (lower === "bug") return "border-red-300 bg-red-100 text-red-500";
+  if (lower === "help wanted")
+    return "border-amber-400 bg-amber-100 text-amber-600";
+  if (lower === "enhancement")
+    return "border-emerald-300 bg-emerald-100 text-emerald-600";
+
+  return "border-slate-300 bg-slate-100 text-slate-600";
+}
+
+function buildLabelsHtml(labels) {
+  if (!Array.isArray(labels) || labels.length === 0) {
+    return '<span class="inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-2 py-[2px] text-[11px] font-medium uppercase leading-none text-slate-600">No Label</span>';
+  }
+
+  return labels
+    .map((labelText) => {
+      const cls = getLabelClass(labelText);
+      return `<span class="inline-flex items-center rounded-full border px-2 py-[2px] text-[11px] font-medium uppercase leading-none ${cls}">${labelText}</span>`;
+    })
+    .join(" ");
+}
+
 function renderIssueCards(issues) {
   issuesContainer.innerHTML = "";
 
   if (issues.length === 0) {
     emptyMessage.classList.remove("hidden");
     return;
-  } else {
-    emptyMessage.classList.add("hidden");
   }
+
+  emptyMessage.classList.add("hidden");
 
   issues.forEach((issue) => {
     const title = issue.title || "No Title";
     const description = issue.description || "No Description";
-    const status = issue.status || "N/A";
+    const status = (issue.status || "N/A").toLowerCase();
     const author = issue.author || "Unknown";
     const priority = issue.priority || "N/A";
     const createdAt = formatCreatedDate(issue.createdAt);
 
-    const isOpen = status.toLowerCase() === "open";
-    const isClosed = status.toLowerCase() === "closed";
+    const isOpen = status === "open";
+    const isClosed = status === "closed";
 
     const statusIcon = isClosed
       ? "./assets/Closed- Status .png"
       : "./assets/Open-Status.png";
 
     let topBorderClass = "border-t-4 border-t-slate-300";
-    if (isOpen) {
-      topBorderClass = "border-t-4 border-t-emerald-500";
-    } else if (isClosed) {
-      topBorderClass = "border-t-4 border-t-violet-500";
-    }
+    if (isOpen) topBorderClass = "border-t-4 border-t-emerald-500";
+    if (isClosed) topBorderClass = "border-t-4 border-t-violet-500";
 
-    let priorityClass = "bg-slate-200 text-slate-500";
-    if (priority.toLowerCase() === "high") {
-      priorityClass = "bg-red-100 text-red-500";
-    } else if (priority.toLowerCase() === "medium") {
-      priorityClass = "bg-amber-100 text-amber-600";
-    } else if (priority.toLowerCase() === "low") {
-      priorityClass = "bg-slate-200 text-slate-500";
-    }
-
-    const labels = Array.isArray(issue.labels) ? issue.labels : [];
-    const labelsHtml =
-      labels.length > 0
-        ? labels
-            .map((labelText) => {
-              const lower = labelText.toLowerCase();
-              let cls = "border-slate-300 bg-slate-100 text-slate-600";
-
-              if (lower === "bug") {
-                cls = "border-red-300 bg-red-100 text-red-500";
-              } else if (lower === "help wanted") {
-                cls = "border-amber-400 bg-amber-100 text-amber-600";
-              } else if (lower === "enhancement") {
-                cls = "border-emerald-300 bg-emerald-100 text-emerald-600";
-              }
-
-              return `<span class="inline-flex items-center rounded-full border px-2 py-[2px] text-[11px] font-medium uppercase leading-none ${cls}">${labelText}</span>`;
-            })
-            .join(" ")
-        : '<span class="inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-2 py-[2px] text-[11px] font-medium uppercase leading-none text-slate-600">No Label</span>';
+    const priorityClass = getPriorityClass(priority);
+    const labelsHtml = buildLabelsHtml(issue.labels);
 
     const card = document.createElement("div");
     card.className = `cursor-pointer overflow-hidden rounded-md border border-slate-200 bg-[#f5f6f8] shadow-sm ${topBorderClass} h-full flex flex-col`;
@@ -216,18 +230,19 @@ function renderIssueCards(issues) {
     issuesContainer.appendChild(card);
   });
 }
-// Get issues based on current tab
+
 function getFilteredIssues() {
   if (currentFilter === "open") {
     return allIssues.filter((issue) => issue.status === "open");
-  } else if (currentFilter === "closed") {
-    return allIssues.filter((issue) => issue.status === "closed");
-  } else {
-    return allIssues;
   }
+
+  if (currentFilter === "closed") {
+    return allIssues.filter((issue) => issue.status === "closed");
+  }
+
+  return allIssues;
 }
 
-// Render using selected filter
 function renderIssuesByCurrentFilter() {
   const filteredIssues = getFilteredIssues();
   updateSummaryCounts(filteredIssues);
@@ -236,10 +251,10 @@ function renderIssuesByCurrentFilter() {
   forceScrollTop();
 }
 
-// Fetch all issues from API
 async function loadAllIssues() {
   try {
     showLoading();
+
     const response = await fetch(ALL_ISSUES_API);
     if (!response.ok) {
       throw new Error("Failed to load issues");
@@ -248,23 +263,23 @@ async function loadAllIssues() {
     const data = await response.json();
     allIssues = getIssuesArray(data);
     masterIssues = [...allIssues];
+
     renderIssuesByCurrentFilter();
   } catch (error) {
-    issuesContainer.innerHTML = `
-      <p class="text-red-500 text-center col-span-full">
-        Something went wrong while loading issues.
-      </p>
-    `;
-    emptyMessage.classList.add("hidden");
-    issueCount.textContent = "0";
-    openCount.textContent = "0 Open";
-    closedCount.textContent = "0 Closed";
+    renderIssueError("Something went wrong while loading issues.");
   } finally {
     hideLoading();
   }
 }
-// Fetch single issue details from API
+
 async function openIssueModal(issueId) {
+  if (!issueId) {
+    modalTitle.textContent = "Issue Details";
+    modalContent.innerHTML = "<p class='text-red-500'>Invalid issue id.</p>";
+    issueModal.showModal();
+    return;
+  }
+
   try {
     modalTitle.textContent = "Issue Details";
     modalContent.innerHTML =
@@ -297,34 +312,12 @@ async function openIssueModal(issueId) {
         : "bg-emerald-500 text-white";
 
     let priorityClass = "bg-slate-200 text-slate-600";
-    if (issuePriority === "HIGH") {
-      priorityClass = "bg-red-500 text-white";
-    } else if (issuePriority === "MEDIUM") {
+    if (issuePriority === "HIGH") priorityClass = "bg-red-500 text-white";
+    if (issuePriority === "MEDIUM")
       priorityClass = "bg-amber-400 text-slate-900";
-    } else if (issuePriority === "LOW") {
-      priorityClass = "bg-slate-300 text-slate-700";
-    }
+    if (issuePriority === "LOW") priorityClass = "bg-slate-300 text-slate-700";
 
-    const labels = Array.isArray(issue.labels) ? issue.labels : [];
-    const labelsHtml =
-      labels.length > 0
-        ? labels
-            .map((labelText) => {
-              const lower = labelText.toLowerCase();
-              let cls = "border-slate-300 bg-slate-100 text-slate-600";
-
-              if (lower === "bug") {
-                cls = "border-red-300 bg-red-100 text-red-500";
-              } else if (lower === "help wanted") {
-                cls = "border-amber-400 bg-amber-100 text-amber-600";
-              } else if (lower === "enhancement") {
-                cls = "border-emerald-300 bg-emerald-100 text-emerald-600";
-              }
-
-              return `<span class="inline-flex items-center rounded-full border px-2 py-[2px] text-[11px] font-medium uppercase leading-none ${cls}">${labelText}</span>`;
-            })
-            .join(" ")
-        : '<span class="inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-2 py-[2px] text-[11px] font-medium uppercase leading-none text-slate-600">No Label</span>';
+    const labelsHtml = buildLabelsHtml(issue.labels);
 
     modalTitle.textContent = issueTitle;
     modalContent.innerHTML = `
@@ -358,7 +351,7 @@ async function openIssueModal(issueId) {
       "<p class='text-red-500'>Could not load issue details.</p>";
   }
 }
-// Fetch search results from API
+
 async function searchIssues(searchText) {
   try {
     showLoading();
@@ -376,28 +369,25 @@ async function searchIssues(searchText) {
     allIssues = getIssuesArray(data);
     currentFilter = "all";
     renderIssuesByCurrentFilter();
-    searchInput.value = ""; // clear search box
+    searchInput.value = "";
   } catch (error) {
-    issuesContainer.innerHTML = `
-      <p class="text-red-500 text-center col-span-full">
-        Something went wrong while searching issues.
-      </p>
-    `;
-    emptyMessage.classList.add("hidden");
-    issueCount.textContent = "0";
-    openCount.textContent = "0 Open";
-    closedCount.textContent = "0 Closed";
+    renderIssueError("Something went wrong while searching issues.");
   } finally {
     hideLoading();
   }
 }
 
-// Handle login form submission
 loginForm.addEventListener("submit", function (event) {
   event.preventDefault();
 
   const typedUsername = usernameInput.value.trim();
   const typedPassword = passwordInput.value.trim();
+
+  if (!typedUsername || !typedPassword) {
+    loginError.textContent = "Username and password are required.";
+    loginError.classList.remove("hidden");
+    return;
+  }
 
   if (typedUsername === DEMO_USERNAME && typedPassword === DEMO_PASSWORD) {
     loginError.classList.add("hidden");
@@ -412,7 +402,6 @@ loginForm.addEventListener("submit", function (event) {
   }
 });
 
-// Tab click event listeners
 tabAll.addEventListener("click", function () {
   currentFilter = "all";
   renderIssuesByCurrentFilter();
@@ -428,11 +417,10 @@ tabClosed.addEventListener("click", function () {
   renderIssuesByCurrentFilter();
 });
 
-setActiveTab("all");
-
-// Search form submission event listener
 searchForm.addEventListener("submit", function (event) {
   event.preventDefault();
+
+  if (isLoading) return;
 
   const searchText = searchInput.value.trim();
 
@@ -443,12 +431,17 @@ searchForm.addEventListener("submit", function (event) {
     return;
   }
 
+  if (searchText.length < 2) {
+    renderIssueError("Please type at least 2 characters to search.");
+    return;
+  }
+
   searchIssues(searchText);
 });
 
-// Check login status on page load
-const savedLoginState = localStorage.getItem("isLoggedIn");
+setActiveTab("all");
 
+const savedLoginState = localStorage.getItem("isLoggedIn");
 if (savedLoginState === "true") {
   showMainSection();
   loadAllIssues();
